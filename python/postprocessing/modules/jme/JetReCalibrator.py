@@ -34,13 +34,6 @@ class JetReCalibrator:
             self.vPar.push_back(self.ResJetPar);
         #Step3 (Construct a FactorizedJetCorrector object) 
         self.JetCorrector = ROOT.FactorizedJetCorrector(self.vPar)
-        if os.path.exists("%s/%s_Uncertainty_%s.txt" % (path,globalTag,jetFlavour)):
-            self.JetUncertainty = ROOT.JetCorrectionUncertainty("%s/%s_Uncertainty_%s.txt" % (path,globalTag,jetFlavour));
-        elif os.path.exists("%s/Uncertainty_FAKE.txt" % path):
-            self.JetUncertainty = ROOT.JetCorrectionUncertainty("%s/Uncertainty_FAKE.txt" % path);
-        else:
-            print 'Missing JEC uncertainty file "%s/%s_Uncertainty_%s.txt", so jet energy uncertainties will not be available' % (path,globalTag,jetFlavour)
-            self.JetUncertainty = None
         self.separateJetCorrectors = {}
         if self.calculateSeparateCorrections or self.calculateType1METCorrection:
             self.vParL1 = ROOT.vector(ROOT.JetCorrectorParameters)()
@@ -68,17 +61,6 @@ class JetReCalibrator:
         corrector.setJetA(jet.area)
         corrector.setRho(rho)
         corr = corrector.getCorrection()
-        if delta != 0:
-            if not self.JetUncertainty: raise RuntimeError("Jet energy scale uncertainty shifts requested, but not available")
-            self.JetUncertainty.setJetPhi(jet.phi)
-            self.JetUncertainty.setJetEta(jet.eta)
-            self.JetUncertainty.setJetPt(corr * jet.pt * (1.-jet.rawFactor))
-            try:
-                jet.jetEnergyCorrUncertainty = self.JetUncertainty.getUncertainty(True) 
-            except RuntimeError as r:
-                print "Caught %s when getting uncertainty for jet of pt %.1f, eta %.2f\n" % (r,corr * jet.pt * (1.-jet.rawFactor),jet.eta)
-                jet.jetEnergyCorrUncertainty = 0.5
-            corr *= max(0, 1+delta*jet.jetEnergyCorrUncertainty)
         return corr
 
 
