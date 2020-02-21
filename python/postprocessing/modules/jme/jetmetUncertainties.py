@@ -69,23 +69,23 @@ class jetmetUncertaintiesProducer(Module):
         
         # to fully re-calculate type-1 MET the JEC that are currently applied are also needed. IS THAT EVEN CORRECT?
 
+        if not self.isData:
+            if len(jesUncertainties) == 1 and jesUncertainties[0] == "Total":
+                self.jesUncertaintyInputFileName = globalTag + "_Uncertainty_" + jetType + ".txt"
+            elif jesUncertainties[0] == "Merged":
+                self.jesUncertaintyInputFileName = "Regrouped_" + globalTag + "_UncertaintySources_" + jetType + ".txt"
+            else:
+                self.jesUncertaintyInputFileName = globalTag + "_UncertaintySources_" + jetType + ".txt"
 
-        if len(jesUncertainties) == 1 and jesUncertainties[0] == "Total":
-            self.jesUncertaintyInputFileName = globalTag + "_Uncertainty_" + jetType + ".txt"
-        elif jesUncertainties[0] == "Merged" and not self.isData:
-            self.jesUncertaintyInputFileName = "Regrouped_" + globalTag + "_UncertaintySources_" + jetType + ".txt"
-        else:
-            self.jesUncertaintyInputFileName = globalTag + "_UncertaintySources_" + jetType + ".txt"
-
-        # read all uncertainty source names from the loaded file
-        if jesUncertainties[0] in ["All", "Merged"]:
-            with open(self.jesInputFilePath+'/'+self.jesUncertaintyInputFileName) as f:
-                lines = f.read().split("\n")
-                sources = filter(lambda x: x.startswith("[") and x.endswith("]"), lines)
-                sources = map(lambda x: x[1:-1], sources)
-                self.jesUncertainties = sources
-        if applyHEMfix:
-            self.jesUncertainties.append("HEMIssue")
+            # read all uncertainty source names from the loaded file
+            if jesUncertainties[0] in ["All", "Merged"]:
+                with open(self.jesInputFilePath+'/'+self.jesUncertaintyInputFileName) as f:
+                    lines = f.read().split("\n")
+                    sources = filter(lambda x: x.startswith("[") and x.endswith("]"), lines)
+                    sources = map(lambda x: x[1:-1], sources)
+                    self.jesUncertainties = sources
+            if applyHEMfix:
+                self.jesUncertainties.append("HEMIssue")
 
         # Define the jet recalibrator            
         self.jetReCalibrator = JetReCalibrator(globalTag, jetType , True, self.jesInputFilePath, calculateSeparateCorrections = False, calculateType1METCorrection  = False)
@@ -132,20 +132,18 @@ class jetmetUncertaintiesProducer(Module):
 
     def beginJob(self):
 
-        print("Loading jet energy scale (JES) uncertainties from file '%s'" % os.path.join(self.jesInputFilePath, self.jesUncertaintyInputFileName))
-        #self.jesUncertainty = ROOT.JetCorrectionUncertainty(os.path.join(self.jesInputFilePath, self.jesUncertaintyInputFileName))
-    
         self.jesUncertainty = {} 
-        # implementation didn't seem to work for factorized JEC, try again another way
-        for jesUncertainty in self.jesUncertainties:
-            jesUncertainty_label = jesUncertainty
-            if jesUncertainty == "Total" and (len(self.jesUncertainties) == 1 or (len(self.jesUncertainties) == 2 and "HEMIssue" in self.jesUncertainties)):
-                jesUncertainty_label = ''
-            if jesUncertainty != "HEMIssue":
-                pars = ROOT.JetCorrectorParameters(os.path.join(self.jesInputFilePath, self.jesUncertaintyInputFileName),jesUncertainty_label)
-                self.jesUncertainty[jesUncertainty] = ROOT.JetCorrectionUncertainty(pars)    
-
         if not self.isData:
+            print("Loading jet energy scale (JES) uncertainties from file '%s'" % os.path.join(self.jesInputFilePath, self.jesUncertaintyInputFileName))
+            # implementation didn't seem to work for factorized JEC, try again another way
+            for jesUncertainty in self.jesUncertainties:
+                jesUncertainty_label = jesUncertainty
+                if jesUncertainty == "Total" and (len(self.jesUncertainties) == 1 or (len(self.jesUncertainties) == 2 and "HEMIssue" in self.jesUncertainties)):
+                    jesUncertainty_label = ''
+                if jesUncertainty != "HEMIssue":
+                    pars = ROOT.JetCorrectorParameters(os.path.join(self.jesInputFilePath, self.jesUncertaintyInputFileName),jesUncertainty_label)
+                    self.jesUncertainty[jesUncertainty] = ROOT.JetCorrectionUncertainty(pars)    
+
             self.jetSmearer.beginJob()
 
     def endJob(self):
