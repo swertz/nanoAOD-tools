@@ -193,6 +193,11 @@ class jetmetUncertaintiesProducer(Module):
     
     def analyze(self, event):
         """process event, return True (go to next module) or False (fail, go to next event)"""
+
+        # do not process the reco jets if event is selected only at gen level and not reco
+        if event.genSelOnly:
+            return True
+
         jets      = Collection(event, self.jetBranchName )
         nJet      = event.nJet
         lowPtJets = Collection(event, "CorrT1METJet" ) if self.isV5NanoAOD else []
